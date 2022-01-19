@@ -1,0 +1,17 @@
+D:\__Intellics\Git\BIT\KVLS2-C\KVLS2-C\bin\Debug\KVLS2-C.exe.config
+D:\__Intellics\Git\BIT\KVLS2-C\KVLS2-C\bin\Debug\KVLS2-C.exe
+D:\__Intellics\Git\BIT\KVLS2-C\KVLS2-C\bin\Debug\KVLS2-C.pdb
+D:\__Intellics\Git\BIT\KVLS2-C\KVLS2-C\bin\Debug\Hardware.Info.dll
+D:\__Intellics\Git\BIT\KVLS2-C\KVLS2-C\bin\Debug\ObjectListView.dll
+D:\__Intellics\Git\BIT\KVLS2-C\KVLS2-C\bin\Debug\OpenHardwareMonitorLib.dll
+D:\__Intellics\Git\BIT\KVLS2-C\KVLS2-C\obj\Debug\KVLS2_C.Form1.resources
+D:\__Intellics\Git\BIT\KVLS2-C\KVLS2-C\obj\Debug\KVLS2_C.Properties.Resources.resources
+D:\__Intellics\Git\BIT\KVLS2-C\KVLS2-C\obj\Debug\KVLS2-C.csproj.GenerateResource.cache
+D:\__Intellics\Git\BIT\KVLS2-C\KVLS2-C\obj\Debug\KVLS2-C.csproj.CoreCompileInputs.cache
+D:\__Intellics\Git\BIT\KVLS2-C\KVLS2-C\obj\Debug\KVLS2-C.csproj.CopyComplete
+D:\__Intellics\Git\BIT\KVLS2-C\KVLS2-C\obj\Debug\KVLS2-C.exe
+D:\__Intellics\Git\BIT\KVLS2-C\KVLS2-C\obj\Debug\KVLS2-C.pdb
+D:\__Intellics\Git\BIT\KVLS2-C\KVLS2-C\obj\Debug\KVLS2-C.csprojAssemblyReference.cache
+D:\__Intellics\Git\BIT\KVLS2-C\KVLS2-C\bin\Debug\Newtonsoft.Json.dll
+D:\__Intellics\Git\BIT\KVLS2-C\KVLS2-C\bin\Debug\PlayEssential.Plugins.HardwareMonitor.dll
+D:\__Intellics\Git\BIT\KVLS2-C\KVLS2-C\bin\Debug\Newtonsoft.Json.xml
