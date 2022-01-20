@@ -14,9 +14,11 @@ using OpenHardwareMonitor;
 using OpenHardwareMonitor.Hardware;
 using System.Threading;
 using System.IO;
+using System.IO.Ports;
 using System.Timers;
 using Timer = System.Timers.Timer;
-using Newtonsoft.Json;
+
+
 
 
 
@@ -24,10 +26,22 @@ namespace KVLS2_C
 {
     public partial class Form1 : Form
     {
+        public enum DEVICE_IDX
+        {
+            SBC = 0,
+            SSD,
+            NETWORK,
+            USB,
+            COM
+        }
+        string[] DEVICE = new string[] { "SBC", "SSD", "NETWORK", "USB", "COM", "STATUS" };
+
         private Thread _thread;
         static Computer _thisComputer;
         public const Int64 GB = (1024 * 1024 * 1024);
         //private IPlayEssentialPluginContext _context;
+
+
 
         public string Name { get; private set; }
         public string Column1 { get; private set; }
@@ -45,26 +59,108 @@ namespace KVLS2_C
         private List<Form1> data;
         private BrightIdeasSoftware.TreeListView treeListView;
 
+        int preLen = 0;
+
         public Form1()
         {
-
             InitializeComponent();
-            AddTree();
-            InitializeData();
-            FillTree();
 
+            #region TreeListView Init
+            Load += Form_Load;
+            #endregion
+
+
+            //data[0].Column1 = "Value change"; // head
+            //data[0].Children[0].Column1 = "TEST2";  // child
+
+            //treeListView.BeginUpdate();
+            //treeListView.EndUpdate();
+           
             _thread = new Thread(new ThreadStart(MonitoringStart));
+            _thread.IsBackground = true;
             _thread.Start();
 
         }
+
+        private void Form_Load(object sender, EventArgs e)
+        {
+            AddTree();
+            InitializeData();
+            FillTree();
+        }
+
         public void MonitoringStart()
         {
+
             while (true)
             {
-                
 
-                //_context.Bridge.Publish(JsonConvert.SerializeObject(_monitor.Tick()));
-                Thread.Sleep(1000);
+                Random rand = new Random();
+                var value = rand.Next(1, 20);
+
+                string[] comList = getComportList();
+
+                if (this.InvokeRequired)
+                {
+                    this.Invoke(new MethodInvoker(delegate ()
+                    {
+                        treeListView.BeginUpdate();
+
+                        // SSD 
+                        updateContent(1, 0, 1, SSD_MemoryUpdate());
+                        updateContent(1, 1, 1, Convert.ToString(value));
+                        updateContent(1, 2, 1, Convert.ToString(value));
+
+                        // COM
+                        if (comList.Length > 0)
+                        {
+                            preLen = comList.Length;
+                            for (int i = 0; i < comList.Length; i++)
+                            {
+                                updateContent(4, i, 1, comList[i].ToString());
+                            }
+                        }
+                        else
+                        {
+                            for (int i = 0; i < preLen; i++)
+                            {
+                                updateContent(4, i, 1, "-");
+                            }
+                        }
+                
+                        treeListView.EndUpdate();
+                    }));
+                }
+                else
+                {
+                    treeListView.BeginUpdate();
+
+                    updateContent(1, 0, 1, SSD_MemoryUpdate());
+                    updateContent(1, 1, 1, Convert.ToString(value));
+                    updateContent(1, 2, 1, Convert.ToString(value));
+
+                    if (comList.Length > 0)
+                    {
+                        preLen = comList.Length;
+
+                        for (int i = 0; i < comList.Length; i++)
+                        {
+                            updateContent(4, 0, 1, comList[i].ToString());
+                        }
+                    }
+                    else
+                    {
+                        for (int i = 0; i < preLen; i++)
+                        {
+                            updateContent(4, i, 1, "-");
+                        }
+                    }
+
+                    treeListView.EndUpdate();
+
+                }
+
+                Thread.Sleep(500);
             }
 
         }
@@ -86,24 +182,32 @@ namespace KVLS2_C
             this.treeListView.ChildrenGetter = x => (x as Form1).Children;
 
             // create the tree columns and set the delegates to print the desired object proerty
-            var nameCol = new BrightIdeasSoftware.OLVColumn("Name", "Name");
+            var nameCol = new BrightIdeasSoftware.OLVColumn("NAME", "Name");
             nameCol.AspectGetter = x => (x as Form1).Name;
 
-            var col1 = new BrightIdeasSoftware.OLVColumn("Column1", "Column1");
+            var col1 = new BrightIdeasSoftware.OLVColumn("CONTENT", "CONTENT");
             col1.AspectGetter = x => (x as Form1).Column1;
 
-            var col2 = new BrightIdeasSoftware.OLVColumn("Column2", "Column2");
+            var col2 = new BrightIdeasSoftware.OLVColumn("SATUS", "SATUS");
             col2.AspectGetter = x => (x as Form1).Column2;
 
-            var col3 = new BrightIdeasSoftware.OLVColumn("Column3", "Column3");
+            var col3 = new BrightIdeasSoftware.OLVColumn("BIT", "BIT");
             col3.AspectGetter = x => (x as Form1).Column3;
 
             // add the columns to the tree
+            this.treeListView.AutoResizeColumns(ColumnHeaderAutoResizeStyle.HeaderSize);
             this.treeListView.Columns.Add(nameCol);
             this.treeListView.Columns.Add(col1);
             this.treeListView.Columns.Add(col2);
             this.treeListView.Columns.Add(col3);
-            
+
+            //listView1.Columns[0].AutoResize(ColumnHeaderAutoResizeStyle.HeaderSize);
+            this.treeListView.Columns[0].Width = -2;
+            this.treeListView.Columns[0].Width = 150;
+
+            this.treeListView.Columns[1].Width = -2;
+            this.treeListView.Columns[1].Width = 400;
+
 
             // set the tree roots
             this.treeListView.Roots = data;
@@ -111,32 +215,75 @@ namespace KVLS2_C
 
         private void InitializeData()
         {
-      
+
+            ImageList imgList = new ImageList();
+
+        
+
             // create fake nodes
-            var parent1 = new Form1("SBC", "-", "-", "-");
-            parent1.Children.Add(new Form1("CHILD_1_1", SBC_CPUInfoUpdate(), "X", "1"));
-            parent1.Children.Add(new Form1("CHILD_1_2", "A", "Y", "2"));
-            parent1.Children.Add(new Form1("CHILD_1_3", "A", "Z", "3"));
-            parent1.Children.Add(new Form1("CHILD_1_1", "A", "X", "1"));
-            parent1.Children.Add(new Form1("CHILD_1_2", "A", "Y", "2"));
-            parent1.Children.Add(new Form1("CHILD_1_3", "A", "Z", "3"));
+            Form1 parent1 = new Form1(DEVICE[(int)DEVICE_IDX.SBC], "-", "-", "-");
+            parent1.Children.Add(new Form1(DEVICE[(int)DEVICE_IDX.SBC], "-", "-", "-"));
+            parent1.Children.Add(new Form1(DEVICE[(int)DEVICE_IDX.SBC], "-", "-", "-"));
+            parent1.Children.Add(new Form1(DEVICE[(int)DEVICE_IDX.SBC], "-", "-", "-"));
+            parent1.Children.Add(new Form1(DEVICE[(int)DEVICE_IDX.SBC], "-", "-", "-"));
+            parent1.Children.Add(new Form1(DEVICE[(int)DEVICE_IDX.SBC], "-", "-", "-"));
+            parent1.Children.Add(new Form1(DEVICE[(int)DEVICE_IDX.SBC], "-", "-", "-"));
 
-            var parent2 = new Form1("SDD", "-", "-", "-");
-            parent2.Children.Add(new Form1("CHILD_2_1", SSD_MemoryUpdate(), "-","-"));
-            parent2.Children.Add(new Form1("CHILD_2_2", "B", "Z", "8"));
-            parent2.Children.Add(new Form1("CHILD_2_3", "B", "J", "9"));
+
+            var parent2 = new Form1(DEVICE[(int)DEVICE_IDX.SSD], "-", "-", "-");
+            parent2.Children.Add(new Form1(DEVICE[(int)DEVICE_IDX.SSD], "-", "-", "-"));
+            parent2.Children.Add(new Form1(DEVICE[(int)DEVICE_IDX.SSD], "-", "-", "-"));
+            parent2.Children.Add(new Form1(DEVICE[(int)DEVICE_IDX.SSD], "-", "-", "-"));
+
+
+            var parent3 = new Form1(DEVICE[(int)DEVICE_IDX.NETWORK], "-", "-", "-");
+            parent3.Children.Add(new Form1(DEVICE[(int)DEVICE_IDX.NETWORK], "-", "-", "-"));
+            parent3.Children.Add(new Form1(DEVICE[(int)DEVICE_IDX.NETWORK], "-", "-", "-"));
+            parent3.Children.Add(new Form1(DEVICE[(int)DEVICE_IDX.NETWORK], "-", "-", "-"));
+
+
+            var parent4 = new Form1(DEVICE[(int)DEVICE_IDX.USB], "-", "-", "-");
+            parent4.Children.Add(new Form1(DEVICE[(int)DEVICE_IDX.USB], "-", "-", "-"));
+            parent4.Children.Add(new Form1(DEVICE[(int)DEVICE_IDX.USB], "-", "-", "-"));
+            parent4.Children.Add(new Form1(DEVICE[(int)DEVICE_IDX.USB], "-", "-", "-"));
+
+            var parent5 = new Form1(DEVICE[(int)DEVICE_IDX.COM], "-", "-", "-");
+            parent5.Children.Add(new Form1(DEVICE[(int)DEVICE_IDX.COM], "-", "-", "-"));
+            parent5.Children.Add(new Form1(DEVICE[(int)DEVICE_IDX.COM], "-", "-", "-"));
+            parent5.Children.Add(new Form1(DEVICE[(int)DEVICE_IDX.COM], "-", "-", "-"));
+
+            data = new List<Form1> { parent1, parent2, parent3, parent4, parent5 };
             
-            var parent3 = new Form1("NETWORK", "-", "-", "-");
-            parent3.Children.Add(new Form1("CHILD_3_1", "C", "R", "10"));
-            parent3.Children.Add(new Form1("CHILD_3_2", "C", "T", "12"));
-            parent3.Children.Add(new Form1("CHILD_3_3", "C", "H", "14"));
+        }
 
-            var parent4 = new Form1("USB", "-", "-", "-");
-            parent4.Children.Add(new Form1("CHILD_3_1", "C", "R", "10"));
-            parent4.Children.Add(new Form1("CHILD_3_2", "C", "T", "12"));
-            parent4.Children.Add(new Form1("CHILD_3_3", "C", "H", "14"));
+        private void updateContent(int row, int row_Index, int col, string str)
+        {
+            this.treeListView.BeginUpdate();            
 
-            data = new List<Form1> { parent1, parent2, parent3, parent4 };
+            switch(col)
+            {
+                case 1:
+                    data[row].Children[row_Index].Column1 = str;
+                    if( (str != null) || (str != "-") || (str !="\0") )
+                    {
+                        data[row].Children[row_Index].Column2 = "Nomal";
+                    }
+                    else
+                    {
+                        data[row].Children[row_Index].Column2 = "-";
+                    }
+                    break;
+
+                case 2:
+                    data[row].Children[row_Index].Column2 = str;
+                    break;
+
+                case 3:
+                    data[row].Children[row_Index].Column3 = str;
+                    break;
+
+            }      
+            this.treeListView.EndUpdate();
         }
 
         private string SSD_MemoryUpdate()
@@ -226,8 +373,35 @@ namespace KVLS2_C
                 }
             }
         }
+        private string[] getComportList()
+        {
+
+            List<string> comList = new List<string>();
+            var search = new ManagementObjectSearcher("Win32_SerialPort");
+
+            string[] p = System.IO.Ports.SerialPort.GetPortNames();
+            string[] ports = new string[p.Length];
+
+            for (int i=0; i<p.Length; i++)
+            {
+                ports[i] = p[i];
+
+            }
+            //MessageBox.Show(ports.ToString());
+
+            return ports;
+        }
 
 
+        private void button1_Click(object sender, EventArgs e)
+        {
+            treeListView.ExpandAll();
 
+        }
+
+        private void button2_Click(object sender, EventArgs e)
+        {
+            treeListView.CollapseAll();
+        }
     }
 }
